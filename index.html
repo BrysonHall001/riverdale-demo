@@ -81,7 +81,7 @@ const CONFIG = {
       waiting: "New request",
       steps: [
         { icon: "inbox", title: "Request received", time: "Tue, 9:42 PM", status: "Request received" },
-        { icon: "chat", title: "Text reply sent", time: "38 seconds later", status: "Owner texted back" },
+        { icon: "chat", title: "Email reply sent", time: "38 seconds later", status: "Owner replied" },
         { icon: "calendar", title: "Owner call booked", time: "Wed, 10:00 AM", status: "Call scheduled" },
         { icon: "doc", title: "Analysis delivered", time: "Wed, before noon", status: "Writing the report" }
       ]
@@ -217,13 +217,11 @@ const CONFIG = {
         fields: [ { name: "situation", type: "choice", label: "Current situation", options: ["It’s vacant now", "My tenant is moving out soon", "I’m managing it myself", "I’m unhappy with my current manager", "Just exploring"], required: true } ] },
       { title: "When would you like help?", help: "No commitment, this just helps us plan.",
         fields: [ { name: "timing", type: "choice", label: "Timing", options: ["As soon as possible", "In 1 to 3 months", "3 months or more"], required: true } ] },
-      { title: "Where should we send your analysis?", help: "We’ll text you a confirmation right away.",
+      { title: "Where should we send your analysis?", help: "We’ll email you a confirmation right away.",
         fields: [
           { name: "firstName", type: "text", label: "First name", required: true, autocomplete: "given-name", half: true },
           { name: "lastName", type: "text", label: "Last name", required: true, autocomplete: "family-name", half: true },
           { name: "email", type: "email", label: "Email", required: true, autocomplete: "email" },
-          { name: "phone", type: "tel", label: "Mobile phone", required: true, autocomplete: "tel" },
-          { name: "consent", type: "checkbox", label: "I agree to receive calls and texts about my request. Msg and data rates may apply. Reply STOP to opt out.", required: true }
         ] }
     ]
   },
@@ -252,7 +250,7 @@ const CONFIG = {
     headline: "Your rental analysis is on the way, {firstName}.",
     text: "We got your request for {address}. Here’s what happens next.",
     nextSteps: [
-      { when: "In about a minute", text: "You’ll get a text from us confirming your request." },
+      { when: "In about a minute", text: "You’ll get an email from us confirming your request." },
       { when: "Within one business day", text: "Your rental analysis arrives by email." },
       { when: "On your call", text: "We walk through the numbers and answer your questions. About 15 minutes." }
     ],
@@ -261,7 +259,7 @@ const CONFIG = {
     bookingUrl: "", // paste a Calendly (or similar) link to embed it; empty shows a demo picker
     times: ["9:30 AM", "11:00 AM", "1:30 PM", "3:00 PM", "4:30 PM"],
     // Shown on the thank-you page so nobody waits for an analysis from a company that doesn't exist
-    demoNote: "This is a concept demo. In a live version, the owner gets a text within a minute and the request lands in the company’s system automatically. Your request was sent to {agency}, the team that built this demo.",
+    demoNote: "This is a concept demo. In a live version, the owner gets an email within a minute and the request lands in the company’s system automatically. Your request was sent to {agency}, the team that built this demo.",
     helpHeading: "Have a question now?",
     helpText: "Call our AI receptionist. It answers day and night.",
     backText: "Back to the site"
@@ -1326,7 +1324,7 @@ function renderHero(){
           <div class="hv-card__booked">${icon("calendar")}${ex.booked}</div>
         </div>
       </div>
-      <div class="hv-sms"><span class="hv-sms__from">Text from Riverdale</span>${ex.text}</div></div>
+      <div class="hv-sms"><span class="hv-sms__from">Email from Riverdale</span>${ex.text}</div></div>
     </div>
   </div>`;
 }
@@ -1603,7 +1601,7 @@ async function next(){
   // Submit
   const btn = $("#fnext"); btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Sending`;
   try {
-    const payload = { ...lead, consent: lead.consent ? "yes" : "no", source: C.business.name + " website", submittedAt: new Date().toISOString(),
+    const payload = { ...lead, source: C.business.name + " website", submittedAt: new Date().toISOString(),
       _subject: `New rental analysis request: ${lead.address || "no address"}` };  // _subject sets the email subject in Formspree
     if (C.form.provider === "netlify"){
       const res = await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1619,9 +1617,9 @@ async function next(){
       // Sent as a plain form post so the browser doesn't need special permission from
       // the CRM server. We can't read the reply, so a CRM hiccup never blocks the visitor.
       // Keys must match the CRM's "Match incoming info" boxes exactly (capital letters count).
-      const crm = { Name: `${lead.firstName || ""} ${lead.lastName || ""}`.trim(), Email: lead.email, Phone: lead.phone,
-        Intent: `Free rental analysis: ${lead.address || ""} (${lead.propertyType || ""}, ${lead.beds || "?"} bed, ${lead.baths || "?"} bath). ${lead.situation || ""}. Timing: ${lead.timing || ""}.`,
-        SmsConsent: lead.consent ? "yes" : "no" };
+      const crm = { Name: `${lead.firstName || ""} ${lead.lastName || ""}`.trim(), Email: lead.email, Address: lead.address || "",
+        Intent: `Free rental analysis: ${lead.address || ""} (${lead.propertyType || ""}, ${lead.beds || "?"} bed, ${lead.baths || "?"} bath). ${lead.situation || ""}. Timing: ${lead.timing || ""}.`
+      };
       fetch(C.form.crmLink, { method: "POST", mode: "no-cors", body: new URLSearchParams(crm) }).catch(() => {});
     }
     closeForm(); showThanks();
